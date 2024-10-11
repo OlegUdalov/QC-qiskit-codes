@@ -11,4 +11,10 @@ Below, is the brief descriptions of various codes
 
 4. "Grover_1" is the code realizing and studying Grover algorithm
 
-5. 
+5. "PhaseOracle" is the code studying the properties of a quantum phase oracle
+
+6. "PhaseKickBack", "CliffordGates", "ToffoliDecomposition" study some basic feature of the quantum circuits
+
+7. "Qtele", "QT1" are examples of quantum teleportation circuits
+
+8. Shor folder is for Shor algorithm
