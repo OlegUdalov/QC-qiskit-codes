@@ -458,6 +458,96 @@ def draper_adder_cl_instr(bit_size, control_bit_size):
 
     return instr
 
+def draper_adder_cl_gate(bit_size, control_bit_size, cl_num_a):
+    """the function implements the simplified Draper adder which adds a quantum number to a clasical number, the adder is controlled
+    The algorithm follows the paper arXiv:quant-ph/0205095
+    
+    The adder is controlled with a number (control_bit_size) of qubits
+    There are control_bit_size qubits performing control of the Draper adder. They both should have |1> state to turn on the adder.
+    Control qubits are the upper control_bit_size quibits, added quantum number is the qubits below the control qubits
+    
+    The function creates a gate (single block) having bit_size + control_bit_size qubits and as input and as output
+
+    IN CONTRAST TO PREVIUS FUNCTION it does not need classical register as an input to control some of the gates. 
+    In this function the gate set is different depending on the input parameter cl_num_a. 
+
+    Parameter:
+    __________
+    bit_size, size of the binary numbers we add with this adder
+    control_bit_size, number of control qubits
+    cl_num_a, list of 1 and 0 representing binary number a, the highest bit goes the first
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with quantumly controlled Draper adder
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the Draper adder can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    
+    q_reg = qiskit.QuantumRegister(bit_size + control_bit_size) #this quantum register stores the added quantum number a
+    adder = qiskit.QuantumCircuit(q_reg)
+
+    if control_bit_size > 0:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate().control(control_bit_size)
+            qbit_list = list(range(0, control_bit_size))
+            qbit_list.append(i + control_bit_size)
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)
+    else:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate()
+            qbit_list = [i + control_bit_size]
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)        
+    
+   
+    aux_gate = QFTn_contr_gate(bit_size, control_bit_size)
+    adder.append(aux_gate,list(range(0, bit_size + control_bit_size)))
+    
+    if control_bit_size > 0:
+        for i_q in range(bit_size): #loop over the quantum register
+            for i_r in range(bit_size - i_q):
+                if cl_num_a[i_r + i_q] == 1:
+                    aux_gate = PhaseGate(2 * PI / (pow(2, i_r + 1))).control(control_bit_size)
+                    qbit_list = list(range(0,control_bit_size))
+                    qbit_list.append(i_q + control_bit_size)
+                    adder.append(aux_gate, qbit_list)
+    else:
+        for i_q in range(bit_size): #loop over the quantum register
+            for i_r in range(bit_size - i_q):
+                if cl_num_a[i_r + i_q] == 1:
+                    aux_gate = PhaseGate(2 * PI / (pow(2, i_r + 1)))
+                    qbit_list = [i_q + control_bit_size]
+                    adder.append(aux_gate, qbit_list)        
+    
+    aux_gate = IQFTn_contr_gate(bit_size, control_bit_size)
+    adder.append(aux_gate,list(range(bit_size + control_bit_size)))
+
+    if control_bit_size > 0:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate().control(control_bit_size)
+            qbit_list = list(range(0, control_bit_size))
+            qbit_list.append(i + control_bit_size)
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)
+    else:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate()
+            qbit_list = [i + control_bit_size]
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)        
+    
+    gate = adder.to_gate(None, 'ctrl_drap_add_cl\n ctr ' + str(control_bit_size) + '\n a = ' + str(cl_num_a))
+
+    return gate
+
 def phi_add_instr(bit_size, control_bit_size):
     """the function implements the simplified Draper adder which adds a QFT of quantum number to a clasical number, the adder is controlled
     The input should QFT of the quantum number a, the output is QFT(a+b), 
@@ -592,6 +682,100 @@ def draper_subtraction_cl_instr(bit_size, control_bit_size):
 
     return instr
 
+def draper_subtraction_cl_gate(bit_size, control_bit_size, cl_num_a):
+    """the function implements the simplified Draper subtractor which subtract clasical number a from quantum number x, the subtractor is controlled
+    The algorithm follows the paper arXiv:quant-ph/0205095
+    
+    The subtractor is controlled with a number (control_bit_size) of qubits
+    There are control_bit_size qubits performing control of the Draper subtractor. They both should have |1> state to turn on the subtractor.
+    Control qubits are the upper control_bit_size quibits, quantum number is the qubits below the control qubits
+    
+    The function creates a gate (single block) having bit_size + control_bit_size qubits and as input and as output
+
+    IN CONTRAST TO PREVIUS FUNCTION it does not need classical register as an input to control some of the gates. 
+    In this function the gate set is different depending on the input parameter cl_num_a. 
+
+    Parameter:
+    __________
+    bit_size, size of the binary numbers we add with this adder
+    control_bit_size, number of control qubits
+    cl_num_a, list of 1 and 0 representing binary number a, the highest bit goes the first
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with quantumly controlled Draper adder
+        
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the subtractor can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    
+    
+    q_reg = qiskit.QuantumRegister(bit_size + control_bit_size) #this quantum register stores the added quantum number a
+    adder = qiskit.QuantumCircuit(q_reg)
+
+    if control_bit_size > 0:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate().control(control_bit_size)
+            qbit_list = list(range(0, control_bit_size))
+            qbit_list.append(i + control_bit_size)
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)
+    else:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate()
+            qbit_list = [i + control_bit_size]
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)        
+
+    aux_gate = IQFTn_contr_gate(bit_size, control_bit_size)
+    adder.append(aux_gate,list(range(0, bit_size + control_bit_size)))
+    
+    if control_bit_size > 0:
+        for i_q in range(bit_size): #loop over the quantum register
+            for i_r in range(bit_size - i_q):
+                if cl_num_a[i_r + i_q] == 1:
+                    aux_gate = PhaseGate(2 * PI / (pow(2, i_r + 1))).control(control_bit_size)
+                    qbit_list = list(range(0,control_bit_size))
+                    qbit_list.append(i_q + control_bit_size)
+                    adder.append(aux_gate, qbit_list)
+    else:
+        for i_q in range(bit_size): #loop over the quantum register
+            for i_r in range(bit_size - i_q):
+                if cl_num_a[i_r + i_q] == 1:
+                    aux_gate = PhaseGate(2 * PI / (pow(2, i_r + 1)))
+                    qbit_list = [i_q + control_bit_size]
+                    adder.append(aux_gate, qbit_list)
+    
+    aux_gate = QFTn_contr_gate(bit_size, control_bit_size)
+    adder.append(aux_gate,list(range(bit_size + control_bit_size)))
+
+    if control_bit_size > 0:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate().control(control_bit_size)
+            qbit_list = list(range(0, control_bit_size))
+            qbit_list.append(i + control_bit_size)
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)
+    else:
+        for i in range(0,int(np.floor(bit_size / 2))):
+            aux_gate = SwapGate()
+            qbit_list = [i + control_bit_size]
+            qbit_list.append(bit_size + control_bit_size - 1 - i)
+            adder.append(aux_gate,qbit_list)   
+    
+    adder.inverse()
+    
+    gate = adder.to_gate(None, 'ctrl_draper_subtr_cl \n ctrl' + str(control_bit_size) + '\n a = ' + str(cl_num_a))
+
+    return gate
+
+
 def phi_subtr_instr(bit_size, control_bit_size):
     """the function implements the simplified Draper subtractor which subtracts a clasical number a from of quantum number b
     The input should QFT of the quantum number a, the output is QFT(a-b), 
@@ -669,7 +853,7 @@ def ctrl_add_mod_N(bit_size, ctrl_bit_size):
     
     References:
     ___________
-    My primitive study of the QFT and IQFT can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    My primitive study of the ctrl_add_mod_N and ctrl_add_mod_N can be found at https://github.com/OlegUdalov/QC-qiskit-codes
     """
     
     
@@ -729,6 +913,90 @@ def ctrl_add_mod_N(bit_size, ctrl_bit_size):
     instr = adder_mod_N.to_instruction(None, 'add_mod_N \n ctrl: ' + str(ctrl_bit_size) + '\n bits: ' + str(bit_size))
 
     return instr
+
+def ctrl_add_mod_N_gate(bit_size, ctrl_bit_size, cl_num_a, cl_num_N):
+    """the function implements the adder modulo N (N is classical number) which adds a clasical number a and quantum number b
+    The algorithm follows the paper arXiv:quant-ph/0205095
+    The function creates a gate (single block) having bit_size + control_bit_size qubits as input and as output
+    Each number has bit_size bits
+    The adder is controlled with control_bit_size qubits
+    The input should be the quantum number register (number b) and control qubits
+    Control quibits are first control_bit_size 
+    Quantum number b is the next bit_size quibits
+
+    IN CONTRAST TO PREVIUS FUNCTION it does not need classical register as an input to control some of the gates. 
+    In this function the gate set is different depending on the input parameter cl_num_a and cl_num_N. 
+
+    Parameter:
+    __________
+    bit_size, int, size of the binary numbers we add with this adder
+    control_bit_size, int, size of the control qubit register
+    cl_num_a, list of 1 and 0 representing binary number a, the highest bit goes the first
+    cl_num_N, list of 1 and 0 representing binary number N, the highest bit goes the first
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with adder modulo N
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the ctrl_add_mod_N can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    
+    
+    q_reg = qiskit.QuantumRegister(bit_size + ctrl_bit_size + 1) #this quantum register stores the added quantum number a
+    adder_mod_N = qiskit.QuantumCircuit(q_reg)
+
+    inst = draper_adder_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    adder_mod_N.append(inst, qubits)
+
+    qubits = []
+    for i in range(0, bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    inst = draper_subtraction_cl_gate(bit_size, 0, cl_num_N)
+    adder_mod_N.append(inst, qubits)
+
+    q_anc = q_reg[bit_size + ctrl_bit_size]
+    adder_mod_N.cx(qubits[0], q_anc)
+
+    inst = draper_adder_cl_gate(bit_size, 1, cl_num_N)
+    qubits = [q_anc]
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    adder_mod_N.append(inst, qubits)
+
+    inst = draper_subtraction_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])   
+    adder_mod_N.append(inst, qubits)
+
+    adder_mod_N.x(q_reg[ctrl_bit_size])
+    adder_mod_N.cx(q_reg[ctrl_bit_size], q_anc)
+    adder_mod_N.x(q_reg[ctrl_bit_size])
+
+    inst = draper_adder_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])   
+    adder_mod_N.append(inst, qubits)
+
+    gate = adder_mod_N.to_gate(None, 'add_mod_N \n ctrl: ' + str(ctrl_bit_size) + '\n bits: ' + str(bit_size) + '\n a = ' + str(cl_num_a) + '\n N = ' + str(cl_num_N))
+
+    return gate
 
 def ctrl_subtr_mod_N(bit_size, ctrl_bit_size):
     """the function implements the subtraction modulo N (N is classical number) which subtract a clasical number a from quantum number (b - a) mod N
@@ -816,6 +1084,91 @@ def ctrl_subtr_mod_N(bit_size, ctrl_bit_size):
     adder_mod_N.append(inst, qubits , cl_reg_a)
 
     instr = adder_mod_N.to_instruction(None, 'subtr_mod_N \n ctrl: ' + str(ctrl_bit_size) + '\n bits: ' + str(bit_size))
+
+    return instr
+
+def ctrl_subtr_mod_N_gate(bit_size, ctrl_bit_size, cl_num_a, cl_num_N):
+    """the function implements the subtraction modulo N (N is classical number) which subtract a clasical number a from quantum number (b - a) mod N
+    The algorithm follows the paper arXiv:quant-ph/0205095
+    The function creates a gate (single block) having bit_size + control_bit_size qubits as input and as output
+    Each number has bit_size bits
+    The adder is controlled with control_bit_size qubits
+    The input should be the quantum number register (number b), and control qubits
+    Control quibits are first control_bit_size 
+    Quantum number b is the next bit_size quibits
+    
+
+    IN CONTRAST TO PREVIUS FUNCTION it does not need classical register as an input to control some of the gates. 
+    In this function the gate set is different depending on the input parameter cl_num_a and cl_num_N.
+
+    Parameter:
+    __________
+    bit_size, int, size of the binary numbers we add with this adder
+    control_bit_size, int, size of the control qubit register
+    cl_num_a, list of 1 and 0 representing binary number a, the highest bit goes the first
+    cl_num_N, list of 1 and 0 representing binary number N, the highest bit goes the first
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with subtractor modulo N
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the QFT and IQFT can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    
+    
+    q_reg = qiskit.QuantumRegister(bit_size + ctrl_bit_size + 1) #this quantum register stores the added quantum number a
+    adder_mod_N = qiskit.QuantumCircuit(q_reg)
+
+    inst = draper_subtraction_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    adder_mod_N.append(inst, qubits)
+
+    qubits = []
+    for i in range(0, bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    inst = draper_subtraction_cl_gate(bit_size, 0, cl_num_N)
+    adder_mod_N.append(inst, qubits)
+
+    q_anc = q_reg[bit_size + ctrl_bit_size]
+    adder_mod_N.cx(qubits[0], q_anc)
+
+    inst = draper_adder_cl_gate(bit_size, 1, cl_num_N)
+    qubits = [q_anc]
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])
+    adder_mod_N.append(inst, qubits)
+
+    inst = draper_adder_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])   
+    adder_mod_N.append(inst, qubits)
+
+    adder_mod_N.x(q_reg[ctrl_bit_size])
+    adder_mod_N.cx(q_reg[ctrl_bit_size], q_anc)
+    adder_mod_N.x(q_reg[ctrl_bit_size])
+
+    inst = draper_subtraction_cl_gate(bit_size, ctrl_bit_size, cl_num_a)
+    qubits = []
+    for i in range(0, ctrl_bit_size):
+        qubits.append(q_reg[i])
+    for i in range(bit_size):
+        qubits.append(q_reg[i + ctrl_bit_size])   
+    adder_mod_N.append(inst, qubits)
+
+    instr = adder_mod_N.to_gate(None, 'subtr_mod_N \n ctrl: ' + str(ctrl_bit_size) + '\n bits: ' + str(bit_size) + '\n a = ' + str(cl_num_a) + '\n N = ' + str(cl_num_N))
 
     return instr
 
@@ -920,6 +1273,65 @@ def ctrl_mult_mod_N(bit_size, cl_num_a, cl_num_N):
 
     return instr
 
+def ctrl_mult_mod_N_gate(bit_size, cl_num_a, cl_num_N):
+    """The function does (b+a*x)mod N operation, where b and x are quantum bit_size-bits numbers, a and N are classical numbers with n-bits size 
+    The algorithm is taken from arXiv:quant-ph/0205095 
+    The function creates an instruction (single block) having 4 * (bit_size+1) + 2 qubits as input and as output
+    Each number (b, x) has bit_size+1 bits. So, the size of the numbers used in the calculations is 1 bit bigger than the size of numbers used by the user of this function
+    The multiplier is controlled with one qubit
+    The input should be in the order from first to last:
+    the control qubit, 
+    the quantum numbers x,
+    the quantum number b,
+    additional ancilla qubit
+
+    The function accepts clasical numbers a and N as parameters. In contract to previous function they are NOT converted into quantun bits inside the algorithm and then converted into a classical register.
+    Quantum numbers x and b should come from previous stages of the bigger algorithm.
+    
+
+    Parameter:
+    __________
+    bit_size, int, size of the binary numbers we add with this adder
+    cl_num_a, list of 0 and 1, classical number a, with the first element of the list corresponding to the highest bit
+    cl_num_N, list of 0 and 1, classical number N, with the first element of the list corresponding to the highest bitN
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with the multiplier
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the QFT and IQFT can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    bit_size = bit_size + 1
+    cl_num_a1 = [0] + cl_num_a
+    cl_num_N1 = [0] + cl_num_N
+    
+    q_reg = qiskit.QuantumRegister(2 * bit_size + 2) #this quantum register stores the numbers b and x
+    mult_mod_N = qiskit.QuantumCircuit(q_reg)
+
+    for i in range(bit_size-1):
+        inst = ctrl_add_mod_N_gate(bit_size, 2, cl_num_a1, cl_num_N1)
+        qubits = [q_reg[0]]
+        qubits.append(q_reg[bit_size - i])
+        for j in range(bit_size):
+            qubits.append(q_reg[bit_size + 1 + j])
+        qubits.append(q_reg[2 * bit_size + 1])
+        mult_mod_N.append(inst, qubits)
+        if i < bit_size-2:
+            #preparing classical number a * 2^i
+            for j in range(bit_size - 1):
+                cl_num_a1[j] = cl_num_a1[j + 1]
+            cl_num_a1[bit_size - 1] = 0
+
+    instr = mult_mod_N.to_gate(None, 'amult_mod_N \n bits: ' + str(bit_size-1) + '\n a = ' + str(cl_num_a) + '\n N = ' + str(cl_num_N))
+
+    return instr
+
 
 def ctrl_mult_mod_N_s(bit_size, cl_num_a, cl_num_N):
     """The function does (b-a*x)mod N operation, where b and x are quantum bit_size-bits numbers, a and N are classical numbers with n-bits size 
@@ -1020,8 +1432,69 @@ def ctrl_mult_mod_N_s(bit_size, cl_num_a, cl_num_N):
 
     return instr
 
+def ctrl_mult_mod_N_s_gate(bit_size, cl_num_a, cl_num_N):
+    """The function does (b-a*x)mod N operation, where b and x are quantum bit_size-bits numbers, a and N are classical numbers with n-bits size 
+    The algorithm is taken from arXiv:quant-ph/0205095 
+    The function creates an instruction (single block) having 2 * (bit_size+1) + 2 qubits as output
+    Each number (a, b, x and N) has bit_size+1 bits. So, the size of the numbers used in the calculations is 1 bit bigger than the size of numbers used by the user of this function
+    The multiplier is controlled with one qubit
+    The input should be in the order from first to last:
+    the control qubit, 
+    the quantum numbers x,
+    the quentum number b,
+    additional ancilla qubit
+ 
+    The function accepts clasical numbers a and N as parameters. In contrast to the previous function they are NOT converted into quantun bits inside the algorithm and then converted into a classical register.
+    Quantum numbers x and b  should come from previous stages of the bigger algorithm.
+    
 
-def CQA_gate(bit_size, cl_num_a, cl_num_N):
+    Parameter:
+    __________
+    bit_size, int, size of the binary numbers we add with this adder
+    cl_num_a, list of 0 and 1, classical number a, with the first element of the list corresponding to the highest bit
+    cl_num_N, list of 0 and 1, classical number N, with the first element of the list corresponding to the highest bitN
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with the multiplier
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the circuit can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+    bit_size = bit_size + 1
+    cl_num_a1 = [0] + cl_num_a
+    cl_num_N1 = [0] + cl_num_N
+    
+    q_reg = qiskit.QuantumRegister(2 * bit_size + 2) #this quantum register stores the numbers b and x
+    mult_mod_N = qiskit.QuantumCircuit(q_reg)
+       
+    for i in range(bit_size-1):
+        inst = ctrl_subtr_mod_N_gate(bit_size, 2, cl_num_a1, cl_num_N1)
+        qubits = [q_reg[0]]
+        qubits.append(q_reg[bit_size - i])
+        for j in range(bit_size):
+            qubits.append(q_reg[bit_size + 1 + j])
+        qubits.append(q_reg[2 * bit_size + 1])
+        mult_mod_N.append(inst, qubits)
+        if i < bit_size-2:
+            #preparing classical number a * 2^i
+            for j in range(bit_size - 1):
+                cl_num_a1[j] = cl_num_a1[j + 1]
+            cl_num_a1[bit_size - 1] = 0
+
+
+    instr = mult_mod_N.to_gate(None, 'amult_mod_N_s \n bits: ' + str(bit_size-1) + '\n a = ' + str(cl_num_a) + '\n N = ' + str(cl_num_N))
+
+    return instr
+
+
+
+def CQA_inst(bit_size, cl_num_a, cl_num_N):
     """The function does (a*x)mod N operation, where x is quantum bit_size-bits numbers, a and N are classical numbers with n-bits size 
     The algorithm is taken from arXiv:quant-ph/0205095 
     The difference comparing to function ctrl_mult_mod_N is that the output qubits are the same qubits used for input of x nuber. 
@@ -1088,6 +1561,70 @@ def CQA_gate(bit_size, cl_num_a, cl_num_N):
     instr = CQA_gate.to_instruction(None, 'CQA_gate \n bits: ' + str(bit_size-1))
     
     return instr
+
+def CQA_gate(bit_size, cl_num_a, cl_num_N):
+    """The function does (a*x)mod N operation, where x is quantum bit_size-bits numbers, a and N are classical numbers with n-bits size 
+    The algorithm is taken from arXiv:quant-ph/0205095 
+    The difference comparing to function ctrl_mult_mod_N is that the output qubits are the same qubits used for input of x nuber. 
+    All the ancilla qubits stay in state |0> after this gate.
+    The function creates a gate (single block) having 2 * (bit_size+1) + 2 qubits as input and as output
+    Each number (a, x and N) has bit_size+1 bits. 
+    So, the size of the numbers used in the calculations is 1 bit bigger than the size of numbers used by the user of this function
+    The multiplier is controlled with one qubit
+    The input should be in the order from first to last:
+    the control qubit, 
+    the quantum numbers x,
+    ancilla qubits (bit_size + 1 ),
+    additional ancilla qubit
+
+    The function accepts clasical numbers a and N as parameters. 
+    In contrast to the previous function they are NOT converted into quantun bits inside the algorithm and then converted into a classical register.
+    Quantum numbers x should come from previous stages of the bigger algorithm.
+    
+
+    Parameter:
+    __________
+    bit_size, int, size of the binary numbers we add with this adder
+    cl_num_a, list of 0 and 1, classical number a, with the first element of the list corresponding to the highest bit
+    cl_num_N, list of 0 and 1, classical number N, with the first element of the list corresponding to the highest bitN
+    
+    Returns:
+    __________
+    qiskit.QuantumCircuit.gate, a new gate with the multiplier
+        
+    Notes:
+    __________
+    Qiskit 1.0 was used to create the function
+    
+    References:
+    ___________
+    My primitive study of the circuit can be found at https://github.com/OlegUdalov/QC-qiskit-codes
+    """
+
+    bit_size = bit_size + 1
+    cl_num_a = cl_num_a
+    cl_num_N = cl_num_N
+    
+    q_reg = qiskit.QuantumRegister(2 * bit_size + 2) #this quantum register stores the numbers b and x
+    CQA_gate = qiskit.QuantumCircuit(q_reg)
+
+    instr = ctrl_mult_mod_N_gate(bit_size-1, cl_num_a, cl_num_N)
+    CQA_gate.append(instr, q_reg)
+    
+    for i in range(bit_size):
+        CQA_gate.swap(q_reg[i+1],q_reg[i+1+bit_size])
+
+    a_int = cr.bin_str_2int(cl_num_a)
+    N_int = cr.bin_str_2int(cl_num_N)
+    a_inv_int = cr.euclids_inverse_mod(a_int, N_int)
+    a_inv = cr.int_2_bin_str(a_inv_int, bit_size - 1)
+    instr = ctrl_mult_mod_N_s_gate(bit_size-1, a_inv, cl_num_N)
+    CQA_gate.append(instr, q_reg)
+
+    instr = CQA_gate.to_gate(None, 'CQA_gate \n bits: ' + str(bit_size-1) + '\n a = ' + str(cl_num_a) + '\n N = ' + str(cl_num_N))
+    
+    return instr
+    
     
 
 def qubit_binary_prepare(q_reg, cl_reg, circ):

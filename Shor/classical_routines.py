@@ -60,8 +60,8 @@ def euclids_inverse_mod(a, N):
     
     # the input parameters should be positive integers
     found = False
-    print(N)
-    print(a)
+    #print(N)
+    #print(a)
     if (type(N) != int) or (type(a) != int):
         print('Input parameters should be positive integer numebrs!')
         res = -1
@@ -103,7 +103,7 @@ def euclids_inverse_mod(a, N):
             if s[i - 1] < 0:
                 s[i - 1] = s[i - 1] + N
             res =  s[i-1]
-    print(res)
+    #print(res)
     return res
 
 #converting binary number represented by a list of ones and zeroes to a integer
