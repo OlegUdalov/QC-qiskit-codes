@@ -1,20 +1,20 @@
 Here I will store the qiskit codes I made myself.
 
-Below, is the brief descriptions of various codes
+Below, is the brief descriptions of various folders
 
 
-1. "QFT_" is the code (function) for the quantum Fourier transform. The code describes it and explores some of the QFT properties. There is also a function perfroming a QFT with various number of qubits.
+1. AlgorithmOptimizationExamples. Here I store some example of circuit optimization (reduction of used qubits and circuit depth).
 
-2. "CuccaroAdder" is the code (function) generating the Curraco adder and analysing how it works.
+2. BlueQubit. For the BlueQubit hackathon in Oct 2024
 
-3. "DrapperAdder" is the code (function) studying the Drapper adder function from the Qiskit library.
+3. Finances. Here I store some algorithms for financial applications.
 
-4. "Grover_1" is the code realizing and studying Grover algorithm
+4. IBM_functions. Testing new feature of IBM Quantum - IBM functions. By Oct 2024 is not available for general public.
 
-5. "PhaseOracle" is the code studying the properties of a quantum phase oracle
+5. Library. Some libraries I made.
 
-6. "PhaseKickBack", "CliffordGates", "ToffoliDecomposition" study some basic feature of the quantum circuits
+6. Shor. Shor algorithm I made. Repeat after some paper.
 
-7. "Qtele", "QT1" are examples of quantum teleportation circuits
+7. Testing various Quantum Computres. Here I will store results of interaction with various QC services provided by different companies. Both real QC and cloud QC simuators.
 
-8. Shor folder is for Shor algorithm
+8. 'textbook' algorithms. Some basic algorithms.
