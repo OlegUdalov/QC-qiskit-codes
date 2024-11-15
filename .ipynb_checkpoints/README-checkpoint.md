@@ -18,5 +18,3 @@ Below, is the brief descriptions of various folders
 7. Testing various Quantum Computres. Here I will store results of interaction with various QC services provided by different companies. Both real QC and cloud QC simuators.
 
 8. 'textbook' algorithms. Some basic algorithms.
-
-9. PennyLane. Algorithms made using PennyLane libraries.
