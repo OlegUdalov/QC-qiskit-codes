@@ -420,6 +420,37 @@ def se_yordanov(theta, i, k, qc):
     
     return qc
 
+def se_yordanov_no_ladder(theta, i, k, qc):
+    '''
+    this is a function for single fermionic excitation but without the ladder part
+    Ansatz is described in the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov. See corresponding Jupyter notebook about this ansatz
+
+    Parameters:
+    theta, float - rotation angle, defines how much of state i is transformed to k, full transition is when theta = pi
+    i,k, int - states between which transoition happens
+    qc, QuantumCircuit - quantum circuit to which the ry_c set of gates will be added
+    '''
+    #if k - 1 > i + 1: 
+    #    for i_q in range(k - 1, i + 1, -1):
+    #        qc.cx(i_q, i_q - 1)
+    qc.cx(k, i)
+    if  k - 1 > i + 1: 
+        qc.cz(i + 1, k)
+    ry_c(theta, i, k, qc)
+    if k - 1 > i + 1: 
+        qc.cz(i + 1, k)
+    qc.cx(k, i)
+    #if k - 1 > i + 1: 
+    #    for i_q in range(i + 1, k - 1):
+    #        qc.cx(i_q + 1, i_q)
+    
+    return qc
+
 def de_yordanov(theta, i, j, k, l, qc):
     '''
     this is a function for double fermionic excitation
@@ -451,6 +482,35 @@ def de_yordanov(theta, i, j, k, l, qc):
     if l - 1 > i + 1: 
         for i_q in range(i + 1, l - 1):
             qc.cx(i_q + 1, i_q)
+    qc.cx(l, k)
+    qc.cx(j, i)
+    
+    return qc
+
+def de_yordanov_no_stair(theta, i, j, k, l, qc):
+    '''
+    this is a function for double qubit excitation. There is no staircase parts. So, the pajrity is not conerved and the operator does not make the right sign of the wave function. Absence of the staircase essentially reduces number of cnots in the circuit.
+
+    Ansatz isea is taken from the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov without the staircase. See corresponding Jupyter notebook about this ansatz
+
+    Parameters:
+    theta, float - rotation angle, defines how much of state i,j is transformed to k,l. Full transition is when theta = pi
+    i,j,k,l, int - states between which transoition happens
+    qc, QuantumCircuit - quantum circuit to which the ry_c set of gates will be added
+    '''
+    #theta = 8 * theta
+    qc.cx(l, k)
+    qc.cx(j, i)
+    qc.cx(l, j)
+    qc.cz(i + 1, l)
+    ry_double_1(theta, i, j, k, l, qc)
+    qc.cz(i + 1, l)
+    qc.cx(l, j)
     qc.cx(l, k)
     qc.cx(j, i)
     
@@ -550,6 +610,37 @@ def sigma_z(node, nodes_number):
     hamiltonian = SparsePauliOp.from_sparse_list(interactions, num_qubits = 2 * nodes_number)
     return hamiltonian
 
+def Coulomb_on_site_ess(nodes_number, Uc):
+    '''
+    This function creates on-site Coulomb repulsion Hamiltonian. Only essential part of the hamiltonian n_up * n_down is present.
+    The rest is just proportional to total particle numbers and does nothing for particle conserving anzats.
+
+    Parameter:
+    nodes_number, int - number of nodes in the system
+    Uc, float - on-site Coulomb repulsion energy
+
+    Output:
+    hamiltonian
+    
+    '''
+    interactions = []
+    hamiltonian = []
+    bits = range(nodes_number * 2)
+    for i_node in range(0, nodes_number):
+                   
+        interaction_string_2 = ''
+        if i_node > 0:
+            for i in range(i_node):
+                interaction_string_2 = interaction_string_2 + 'I'
+        interaction_string_2 = interaction_string_2 + 'Z'
+        for i in range(i_node + 1, i_node + nodes_number):
+            interaction_string_2 = interaction_string_2 + 'I'
+        interaction_string_2 = interaction_string_2 + 'Z'
+        
+        interactions.append((interaction_string_2, bits, Uc/2))
+        
+    hamiltonian =  (SparsePauliOp.from_sparse_list(interactions, num_qubits = 2 * nodes_number))
+    return hamiltonian
 
 def kinetic_energy(t, nodes_number, periodic = True):
     interactions = []
@@ -579,9 +670,7 @@ def kinetic_energy(t, nodes_number, periodic = True):
         interactions.append((interaction_string_2, bits, -t/2))
         interactions.append((interaction_string_3, bits, -t/2))
         interactions.append((interaction_string_4, bits, -t/2))
-    
-    
-        
+
     if periodic == True:
         interaction_string_1 = ''
         interaction_string_1 = interaction_string_1 + 'X'
@@ -620,7 +709,7 @@ def kinetic_energy(t, nodes_number, periodic = True):
     return hamiltonian
 
 
-def full_ham(nodes_number, magnetization, J, t, periodic = True):
+def full_ham(nodes_number, magnetization, J, t, Uc, periodic = True):
     '''
     Create 1D Hamiltonian consisting of tight-binding kinetic energy (with energy constant t), 
     periodic boundary conditiona may be applied
@@ -650,6 +739,8 @@ def full_ham(nodes_number, magnetization, J, t, periodic = True):
             #mag_ham.append(J*magnetization[node][2] * sigma_z(node, nodes_number))
             mag_ham = sum(mag_ham, J * magnetization[node][2] * sigma_z(node, nodes_number))
     hamiltonian = sum(mag_ham, hamiltonian)
+    coul_ham = Coulomb_on_site_ess(nodes_number, Uc)
+    hamiltonian = sum(coul_ham, hamiltonian)
     return hamiltonian
 
 def exc_yordanov(n_qubits, theta, qc):
@@ -684,4 +775,108 @@ def exc_yordanov(n_qubits, theta, qc):
                     if k != j and l !=j:
                         qc = de_yordanov(theta[n], i, j, k, l, qc)
                         n = n + 1
+    return qc
+
+def exc_yordanov_no_stair(n_qubits, theta, qc):
+    '''
+    The function creates an operator that perform single-particle and double-particles transitions on an initial state.
+    Initial state should be defined outside of the function.
+    The function is independent of the initial state.
+    
+    Ansatz is described in the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov. See corresponding Jupyter notebook about this ansatz
+    
+
+    Parameters:
+    n_qubits - number of qubits in the cirquit qc. Should be more than 4. Corresponds to the number of states in the system.
+    theta - array of angles theta, 0<theta<pi 
+    
+    '''
+    n = 0
+    for i in range(n_qubits):
+        for j in range(i + 1, n_qubits):
+            qc = se_yordanov(theta[n], i, j, qc)
+            n = n + 1
+    
+    for i in range(n_qubits):
+        for j in range(i + 1, n_qubits):
+            for k in range(i + 1, n_qubits):
+                for l in range(k + 1, n_qubits):
+                    if k != j and l !=j:
+                        qc = de_yordanov_no_stair(theta[n], i, j, k, l, qc)
+                        n = n + 1
+    return qc
+
+def exc_yordanov_single_only(n_qubits, theta, qc, n_red):
+    '''
+    The function creates an operator that perform single-particle transitions only on an initial state.
+    Initial state should be defined outside of the function.
+    The function is independent of the initial state.
+    
+    Ansatz is described in the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov. See corresponding Jupyter notebook about this ansatz
+    
+
+    Parameters:
+    n_qubits - number of qubits in the cirquit qc. Should be more than 4. Corresponds to the number of states in the system.
+    theta - array of angles theta, 0<theta<pi 
+    
+    '''
+    n = 0
+    for i in range(n_qubits - n_red):
+        for j in range(i + 1, n_qubits):
+            qc = se_yordanov(theta[n], i, j, qc)
+            n = n + 1
+    '''
+    for i in range(n_qubits):
+        for j in range(i + 1, n_qubits):
+            for k in range(i + 1, n_qubits):
+                for l in range(k + 1, n_qubits):
+                    if k != j and l !=j:
+                        qc = de_yordanov_no_stair(theta[n], i, j, k, l, qc)
+                        n = n + 1
+    '''
+    return qc
+
+def exc_yordanov_single_only_no_ladder(n_qubits, theta, qc, n_red):
+    '''
+    The function creates an operator that perform single-particle transitions only on an initial state.
+    Initial state should be defined outside of the function.
+    The function is independent of the initial state.
+    
+    Ansatz is described in the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov. See corresponding Jupyter notebook about this ansatz
+    
+
+    Parameters:
+    n_qubits - number of qubits in the cirquit qc. Should be more than 4. Corresponds to the number of states in the system.
+    theta - array of angles theta, 0<theta<pi 
+    
+    '''
+    n = 0
+    for i in range(n_qubits - n_red):
+        for j in range(i + 1, n_qubits):
+            qc = se_yordanov_no_ladder(theta[n], i, j, qc)
+            n = n + 1
+    '''
+    for i in range(n_qubits):
+        for j in range(i + 1, n_qubits):
+            for k in range(i + 1, n_qubits):
+                for l in range(k + 1, n_qubits):
+                    if k != j and l !=j:
+                        qc = de_yordanov_no_stair(theta[n], i, j, k, l, qc)
+                        n = n + 1
+    '''
     return qc
