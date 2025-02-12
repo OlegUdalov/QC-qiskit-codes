@@ -866,10 +866,11 @@ def exc_yordanov_single_only_no_ladder(n_qubits, theta, qc, n_red):
     
     '''
     n = 0
-    for i in range(n_qubits - n_red):
+    for i in range(n_qubits - n_red - 1):
         for j in range(i + 1, n_qubits):
             qc = se_yordanov_no_ladder(theta[n], i, j, qc)
             n = n + 1
+    
     '''
     for i in range(n_qubits):
         for j in range(i + 1, n_qubits):
