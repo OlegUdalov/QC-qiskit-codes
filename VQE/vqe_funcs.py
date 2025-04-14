@@ -302,7 +302,7 @@ def ry_c(theta, i, k, qc):
     i,k, int - states between which transoition happens
     qc, QuantumCircuit - quantum circuit to which the ry_c set of gates will be added
     '''
-    qc.cx(k,i)
+    #qc.cx(k,i)
     gate = qiskit.circuit.library.RZGate(PI / 2)
     qc.append(gate, [k])
     gate = qiskit.circuit.library.RYGate(-PI / 2)
@@ -438,7 +438,7 @@ def se_yordanov_no_ladder(theta, i, k, qc):
     #if k - 1 > i + 1: 
     #    for i_q in range(k - 1, i + 1, -1):
     #        qc.cx(i_q, i_q - 1)
-    qc.cx(k, i)
+    #qc.cx(k, i)
     if  k - 1 > i + 1: 
         qc.cz(i + 1, k)
     ry_c(theta, i, k, qc)
@@ -881,3 +881,74 @@ def exc_yordanov_single_only_no_ladder(n_qubits, theta, qc, n_red):
                         n = n + 1
     '''
     return qc
+
+def exc_yordanov_single_only_no_ladder_red(n_qubits, theta, qc, n_l):
+    '''
+    The function creates an operator that perform single-particle transitions only on an initial state.
+    Initial state should be defined outside of the function.
+    The function is independent of the initial state.
+
+    Ansatz is described in the paper 
+    PHYSICAL REVIEW A 102, 062612 (2020)
+    Efficient quantum circuits for quantum computational chemistry
+    Yordan S. Yordanov, David R. M. Arvidsson-Shukur, and Crispin H. W. Barnes
+
+    I call it cluster Ansatz by Yordanov. See corresponding Jupyter notebook about this ansatz
+    
+
+    Parameters:
+    n_qubits - number of qubits in the cirquit qc. Should be more than 4. Corresponds to the number of states in the system.
+    theta - array of angles theta, 0<theta<pi
+    n_l >= 1 , n_l <= n_qubits - 2
+    
+    '''
+    n = 0
+    for i in range(n_l - 1):
+        for j in range(i + 1, n_qubits):
+            qc = se_yordanov_no_ladder(theta[n], i, j, qc)
+            n = n + 1
+    return qc
+
+def particles_number_control(nodes_number, part_numb, Fermi_level):
+    '''
+    The function creates a Hamiltonian controlling particles number. \mu * (n-n_el)^2. 
+    It adds a high cost (Fermi_level) to any ground state with incorrect number of particles.
+    
+    Parameters:
+    nodes_number - Number of nodes in the system
+    part_numb - number of electrons in the system, should be smaller than nodes_number and bigger than 0
+    Fermi_level - energy cost to add or subtract one electron in the system
+    
+    '''
+    interactions = []
+    hamiltonian = []
+    bits = range(nodes_number * 2)
+
+    dn = nodes_number - part_numb
+    interactions.append(('I', bits, (pow(dn,2) + 1 / 2 * nodes_number) * Fermi_level))
+    
+    
+    for i_node in range(0, 2 * nodes_number):
+        interaction_string_1 = ''
+        for i in range(i_node):
+            interaction_string_1 = interaction_string_1 + 'I'
+        interaction_string_1 = interaction_string_1 + 'Z'
+        if dn != 0:
+            interactions.append((interaction_string_1, bits, -dn * Fermi_level))
+
+    for i_node in range(0, 2 * nodes_number - 1):
+        for j_node in range(i_node + 1, 2 * nodes_number):
+            interaction_string_1 = ''
+            for i in range(i_node):
+                interaction_string_1 = interaction_string_1 + 'I'
+            interaction_string_1 = interaction_string_1 + 'Z'
+            if j_node == i_node + 1:
+                interaction_string_1 = interaction_string_1 + 'Z'
+            else:
+                for i in range(i_node + 1, j_node):
+                    interaction_string_1 = interaction_string_1 + 'I'
+                interaction_string_1 = interaction_string_1 + 'Z'
+            interactions.append((interaction_string_1, bits, 1/2 * Fermi_level))
+
+    hamiltonian =  (SparsePauliOp.from_sparse_list(interactions, num_qubits = 2 * nodes_number))
+    return hamiltonian
