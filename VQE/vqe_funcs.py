@@ -302,7 +302,7 @@ def ry_c(theta, i, k, qc):
     i,k, int - states between which transoition happens
     qc, QuantumCircuit - quantum circuit to which the ry_c set of gates will be added
     '''
-    #qc.cx(k,i)
+    qc.cx(k,i)
     gate = qiskit.circuit.library.RZGate(PI / 2)
     qc.append(gate, [k])
     gate = qiskit.circuit.library.RYGate(-PI / 2)
@@ -410,7 +410,9 @@ def se_yordanov(theta, i, k, qc):
     qc.cx(k, i)
     if  k - 1 > i + 1: 
         qc.cz(i + 1, k)
+   
     ry_c(theta, i, k, qc)
+
     if k - 1 > i + 1: 
         qc.cz(i + 1, k)
     qc.cx(k, i)
@@ -438,7 +440,7 @@ def se_yordanov_no_ladder(theta, i, k, qc):
     #if k - 1 > i + 1: 
     #    for i_q in range(k - 1, i + 1, -1):
     #        qc.cx(i_q, i_q - 1)
-    #qc.cx(k, i)
+    qc.cx(k, i)
     if  k - 1 > i + 1: 
         qc.cz(i + 1, k)
     ry_c(theta, i, k, qc)
@@ -470,18 +472,21 @@ def de_yordanov(theta, i, j, k, l, qc):
     #theta = 8 * theta
     qc.cx(l, k)
     qc.cx(j, i)
+    qc.cx(l, j)
     if l - 1 > i + 1: 
         for i_q in range(l - 1, i + 1, -1):
             qc.cx(i_q, i_q - 1)
-    qc.cx(l, j)
+    
     qc.cz(i + 1, l)
     
     ry_double_1(theta, i, j, k, l, qc)
+    
     qc.cz(i + 1, l)
-    qc.cx(l, j)
+    
     if l - 1 > i + 1: 
         for i_q in range(i + 1, l - 1):
             qc.cx(i_q + 1, i_q)
+    qc.cx(l, j)
     qc.cx(l, k)
     qc.cx(j, i)
     
@@ -765,7 +770,7 @@ def exc_yordanov(n_qubits, theta, qc):
     n = 0
     for i in range(n_qubits):
         for j in range(i + 1, n_qubits):
-            qc = se_yordanov(theta[n], i, j, qc)
+            qc = se_yordanov(2 * theta[n], i, j, qc)
             n = n + 1
     
     for i in range(n_qubits):
@@ -773,7 +778,7 @@ def exc_yordanov(n_qubits, theta, qc):
             for k in range(i + 1, n_qubits):
                 for l in range(k + 1, n_qubits):
                     if k != j and l !=j:
-                        qc = de_yordanov(theta[n], i, j, k, l, qc)
+                        qc = de_yordanov(8 * theta[n], i, j, k, l, qc)
                         n = n + 1
     return qc
 
@@ -796,10 +801,11 @@ def exc_yordanov_no_stair(n_qubits, theta, qc):
     theta - array of angles theta, 0<theta<pi 
     
     '''
+    #theta = 8 * theta
     n = 0
     for i in range(n_qubits):
         for j in range(i + 1, n_qubits):
-            qc = se_yordanov(theta[n], i, j, qc)
+            qc = se_yordanov_no_ladder(2 * theta[n], i, j, qc)
             n = n + 1
     
     for i in range(n_qubits):
@@ -807,7 +813,7 @@ def exc_yordanov_no_stair(n_qubits, theta, qc):
             for k in range(i + 1, n_qubits):
                 for l in range(k + 1, n_qubits):
                     if k != j and l !=j:
-                        qc = de_yordanov_no_stair(theta[n], i, j, k, l, qc)
+                        qc = de_yordanov_no_stair(8 * theta[n], i, j, k, l, qc)
                         n = n + 1
     return qc
 
